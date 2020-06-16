@@ -1,0 +1,7 @@
+domain: jlandowner.com
+repo: pod-disposal-operator
+resources:
+- group: operator.k8s
+  kind: PodDisposalSchedule
+  version: v1
+version: "2"

@@ -1,0 +1,20 @@
+# permissions to do viewer poddisposalschedules.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: poddisposalschedule-viewer-role
+rules:
+- apiGroups:
+  - operator.k8s.jlandowner.com
+  resources:
+  - poddisposalschedules
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.k8s.jlandowner.com
+  resources:
+  - poddisposalschedules/status
+  verbs:
+  - get

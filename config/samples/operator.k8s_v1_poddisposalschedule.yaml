@@ -1,0 +1,7 @@
+apiVersion: operator.k8s.jlandowner.com/v1
+kind: PodDisposalSchedule
+metadata:
+  name: poddisposalschedule-sample
+spec:
+  # Add fields here
+  foo: bar

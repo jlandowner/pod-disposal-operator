@@ -1,0 +1,26 @@
+# permissions to do edit poddisposalschedules.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: poddisposalschedule-editor-role
+rules:
+- apiGroups:
+  - operator.k8s.jlandowner.com
+  resources:
+  - poddisposalschedules
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.k8s.jlandowner.com
+  resources:
+  - poddisposalschedules/status
+  verbs:
+  - get
+  - patch
+  - update
