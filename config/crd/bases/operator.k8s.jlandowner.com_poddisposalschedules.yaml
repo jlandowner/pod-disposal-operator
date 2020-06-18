@@ -1,0 +1,135 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: poddisposalschedules.operator.k8s.jlandowner.com
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.selector.type
+    name: TargetType
+    type: string
+  - JSONPath: .spec.selector.name
+    name: TargetName
+    type: string
+  - JSONPath: .status.lastDisposalCounts
+    name: LastDisposalCounts
+    type: integer
+  - JSONPath: .status.lastDisposalTime
+    name: LastDisposalTime
+    type: string
+  - JSONPath: .status.nextDisposalTime
+    name: NextDisposalTime
+    type: string
+  group: operator.k8s.jlandowner.com
+  names:
+    kind: PodDisposalSchedule
+    listKind: PodDisposalScheduleList
+    plural: poddisposalschedules
+    shortNames:
+    - pds
+    singular: poddisposalschedule
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: PodDisposalSchedule is the Schema for the poddisposalschedules
+        API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PodDisposalScheduleSpec defines the desired state of PodDisposalSchedule
+          properties:
+            schedule:
+              description: Schedule is a period duration of disposal, written in "cron"
+                format
+              type: string
+            selector:
+              description: Selector defines target pods to disposal
+              properties:
+                name:
+                  description: Name is a Deployment or a prefix of pod's name
+                  type: string
+                namespase:
+                  description: Namespase is a pod's namespace, default is the same
+                    namespace.
+                  type: string
+                type:
+                  description: Type is a selector type
+                  enum:
+                  - Deployment
+                  - NamePrefix
+                  type: string
+              required:
+              - name
+              - type
+              type: object
+            strategy:
+              description: Strategy defines a policies of pod disposal
+              properties:
+                disposalConcurrency:
+                  description: DisposalConcurrency is a number of pods deleted at
+                    the same time.
+                  minimum: 1
+                  type: integer
+                lifespan:
+                  description: Lifespan is a period of pod alive, written in "time.Duration"
+                  type: string
+                minAvailable:
+                  description: MinAvailable is a number of pods must be available.
+                  minimum: 0
+                  type: integer
+              required:
+              - lifespan
+              type: object
+          required:
+          - schedule
+          - selector
+          type: object
+        status:
+          description: PodDisposalScheduleStatus defines the observed state of PodDisposalSchedule
+          properties:
+            lastDisposalCounts:
+              description: LastDisposalCounts is a number of deleted pods in last
+                reconciled time
+              type: integer
+            lastDisposalTime:
+              description: LastDisposalTime is a last reconciled time
+              format: date-time
+              type: string
+            nextDisposalTime:
+              description: NextDisposalTime is a next reconcile time
+              format: date-time
+              type: string
+          required:
+          - lastDisposalCounts
+          - lastDisposalTime
+          - nextDisposalTime
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
