@@ -30,7 +30,7 @@ type Selector struct {
 }
 
 // SelectorType is a type of selector
-// +kubebuilder:validation:Enum=Deployment;NamePrefix
+// +kubebuilder:validation:Enum=Deployment
 type SelectorType string
 
 const (
