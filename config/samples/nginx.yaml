@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      deploy: sample-nginx
+  template:
+    metadata:
+      labels:
+        deploy: sample-nginx
+    spec:
+      containers:
+      - image: nginx:alpine
+        name: nginx

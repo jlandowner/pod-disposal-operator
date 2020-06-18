@@ -3,5 +3,11 @@ kind: PodDisposalSchedule
 metadata:
   name: poddisposalschedule-sample
 spec:
-  # Add fields here
-  foo: bar
+  selector:
+    type: Deployment
+    name: sample-nginx
+  schedule: "*/1 * * * *"
+  strategy:
+    disposalConcurrency: 2
+    lifespan: 3m
+    minAvailable: 2
