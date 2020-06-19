@@ -73,7 +73,6 @@ spec:
                   description: Type is a selector type
                   enum:
                   - Deployment
-                  - NamePrefix
                   type: string
               required:
               - name
