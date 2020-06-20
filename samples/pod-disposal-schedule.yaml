@@ -1,7 +1,8 @@
 apiVersion: operator.k8s.jlandowner.com/v1
 kind: PodDisposalSchedule
 metadata:
-  name: poddisposalschedule-sample
+  name: sample-nginx-pds
+  namespace: default
 spec:
   selector:
     type: Deployment
