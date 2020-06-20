@@ -37,9 +37,10 @@ func (r *PodDisposalScheduleReconciler) SetupWithManager(mgr ctrl.Manager) error
 
 // +kubebuilder:rbac:groups=operator.k8s.jlandowner.com,resources=poddisposalschedules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=operator.k8s.jlandowner.com,resources=poddisposalschedules/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get
-// +kubebuilder:rbac:resources=pods,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:resources=pods/status,verbs=get
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=pods/status,verbs=get
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is main reconciliation logic.
 func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

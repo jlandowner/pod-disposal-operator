@@ -6,7 +6,21 @@ metadata:
   creationTimestamp: null
   name: manager-role
 rules:
-- resources:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - pods
   verbs:
   - create
@@ -16,7 +30,9 @@ rules:
   - patch
   - update
   - watch
-- resources:
+- apiGroups:
+  - ""
+  resources:
   - pods/status
   verbs:
   - get
@@ -26,6 +42,8 @@ rules:
   - deployments
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - operator.k8s.jlandowner.com
   resources:
