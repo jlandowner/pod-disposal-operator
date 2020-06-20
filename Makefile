@@ -1,6 +1,9 @@
+NAME = pod-disposal-operator
+TAG = v0.1.0
+REPO = jlandowner
 
 # Image URL to use all building/pushing image targets
-IMG ?= jlandowner/pod-disposal-operator:v0.1.0
+IMG ?= $(REPO)/$(NAME):$(TAG)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -42,7 +45,7 @@ quickstart:
 	kustomize build config/default > deploy/quickstart.yaml
 
 watch:
-	kubectl logs -n pod-disposal-operator-system deployment.apps/pod-disposal-operator-controller-manager manager
+	kubectl logs -n $(NAME)-system -f deployment.apps/$(NAME)-controller-manager manager
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
