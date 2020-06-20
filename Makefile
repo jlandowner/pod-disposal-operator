@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= jlandowner/pod-disposal-operator:v0.1.0
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -34,9 +34,15 @@ uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
+deploy: manifests quickstart
+	kubectl apply -f deploy/quickstart.yaml
+
+quickstart: 
 	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
+	kustomize build config/default > deploy/quickstart.yaml
+
+watch:
+	kubectl logs -n pod-disposal-operator-system deployment.apps/pod-disposal-operator-controller-manager manager
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
