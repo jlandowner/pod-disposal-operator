@@ -1,0 +1,21 @@
+apiVersion: operator.k8s.jlandowner.com/v1
+kind: PodDisposalSchedule
+metadata:
+  name: poddisposalschedule-sample
+  namespace: default
+spec:
+  # Target Pods selector
+  selector:
+    # Only Deployment is available
+    type: Deployment
+    # Deployment name
+    name: sample-nginx
+  # Cron format's disposal schedule
+  schedule: "* */3 * * *"
+  strategy:
+    # Max number of pods to be deleted at the same time
+    disposalConcurrency: 2
+    # Pods that are living over lifespan will be deleted only
+    lifespan: 12h
+    # Number of pods to be kept
+    minAvailable: 2
