@@ -4,11 +4,18 @@ metadata:
   name: sample-nginx-pds
   namespace: default
 spec:
+  # Target Pods selector
   selector:
+    # Only Deployment is available
     type: Deployment
+    # Deployment name
     name: sample-nginx
+  # Cron format's disposal schedule
   schedule: "*/1 * * * *"
   strategy:
+    # Max number of pods to be deleted at the same time
     disposalConcurrency: 2
-    lifespan: 3m
+    # Pods that are living over lifespan will be deleted only
+    lifespan: 1m
+    # Number of pods to be kept
     minAvailable: 2
