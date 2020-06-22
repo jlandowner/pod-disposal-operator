@@ -23,9 +23,41 @@ See the status and the last disposal result.
 kubectl get pds sample-nginx-pds -n default
 ```
 
+```
+NAME               TARGETTYPE   TARGETNAME     LASTDISPOSALCOUNTS   LASTDISPOSALTIME       NEXTDISPOSALTIME
+sample-nginx-pds   Deployment   sample-nginx   1                    2020-06-22T09:56:00Z   2020-06-22T09:57:00Z
+```
+
 See the detail. You can see the detail of the last disposal as Events.
 
 ```shell
 kubectl describe pds sample-nginx-pds -n default
 ```
 
+```
+...
+
+Spec:
+  Schedule:  */1 * * * *
+  Selector:
+    Name:       sample-nginx
+    Namespase:  default
+    Type:       Deployment
+  Strategy:
+    Disposal Concurrency:  2
+    Lifespan:              1m
+    Min Available:         2
+    Order:                 Old
+Status:
+  Last Disposal Counts:  1
+  Last Disposal Time:    2020-06-22T09:56:00Z
+  Next Disposal Time:    2020-06-22T09:57:00Z
+Events:
+  Type    Reason    Age   From                   Message
+  ----    ------    ----  ----                   -------
+  Normal  Init      92s   pod-disposal-operator  Successfully initalized status
+  Normal  Starting  40s   pod-disposal-operator  Pod disposal is starting
+  Normal  Disposed  40s   pod-disposal-operator  Successfully delete pod sample-nginx-cf5b9fd8c-g589t created at 2020-06-22 09:54:22 +0000 UTC
+  Normal  Finished  40s   pod-disposal-operator  Pod disposal is successfully finished
+
+```
