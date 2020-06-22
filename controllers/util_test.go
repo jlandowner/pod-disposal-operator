@@ -28,7 +28,7 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	psov1 "pod-disposal-operator/api/v1"
+	pdov1 "pod-disposal-operator/api/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -155,12 +155,12 @@ func TestFilterTargetPod(t *testing.T) {
 	timesortAscTimestampPodsSize3.Items = append(timesortAscTimestampPodsSize3.Items, pod3)
 
 	// randamTimestampPodsSize3, numberOfPods=1
-	tgt := filterTargetPods(randamTimestampPodsSize3, 1)
+	tgt := filterTargetPods(&randamTimestampPodsSize3, 1)
 	assert.Equal(t, 1, len(tgt.Items))
 	assert.Equal(t, pod1.ObjectMeta.CreationTimestamp.Time, tgt.Items[0].CreationTimestamp.Time)
 
 	// randamTimestampPodsSize3, numberOfPods=3
-	tgt = filterTargetPods(randamTimestampPodsSize3, 3)
+	tgt = filterTargetPods(&randamTimestampPodsSize3, 3)
 	assert.Equal(t, 3, len(tgt.Items))
 
 	for i, pod := range tgt.Items {
@@ -179,7 +179,7 @@ func TestFilterTargetPod(t *testing.T) {
 
 func TestGetEffectiveDisposalConcurrency(t *testing.T) {
 	var result int
-	pds := psov1.PodDisposalSchedule{}
+	pds := pdov1.PodDisposalSchedule{}
 	pds.Spec.Strategy.DisposalConcurrency = 2
 	numberOfPods := 3
 

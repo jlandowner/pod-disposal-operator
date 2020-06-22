@@ -33,7 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	psov1 "pod-disposal-operator/api/v1"
+	pdov1 "pod-disposal-operator/api/v1"
 )
 
 // PodDisposalScheduleReconciler reconciles a PodDisposalSchedule object
@@ -47,7 +47,7 @@ type PodDisposalScheduleReconciler struct {
 // SetupWithManager returns Controller to run
 func (r *PodDisposalScheduleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&psov1.PodDisposalSchedule{}).
+		For(&pdov1.PodDisposalSchedule{}).
 		Complete(r)
 }
 
@@ -64,7 +64,7 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 	log := r.Log.WithValues("podDisposalSchedule", req.NamespacedName)
 	log.V(0).Info("Start reconcile")
 
-	var pds psov1.PodDisposalSchedule
+	var pds pdov1.PodDisposalSchedule
 	if err := r.Get(ctx, req.NamespacedName, &pds); err != nil {
 		log.Error(err, "failed to fetch PodDisposalSchedule")
 		// we'll ignore not-found errors, since they can't be fixed by an immediate
@@ -173,7 +173,7 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 }
 
 // getTargetPods returns target pods by selector.
-func (r *PodDisposalScheduleReconciler) getTargetPods(ctx context.Context, pds *psov1.PodDisposalSchedule) (pods corev1.PodList, err error) {
+func (r *PodDisposalScheduleReconciler) getTargetPods(ctx context.Context, pds *pdov1.PodDisposalSchedule) (pods corev1.PodList, err error) {
 	switch pds.Spec.Selector.Type {
 	case "Deployment":
 		deployName := pds.Spec.Selector.Name
@@ -201,7 +201,7 @@ func (r *PodDisposalScheduleReconciler) getTargetPods(ctx context.Context, pds *
 }
 
 // initPdsStatus updates the default value and status in creation.
-func (r *PodDisposalScheduleReconciler) initPdsStatus(ctx context.Context, pds *psov1.PodDisposalSchedule) (nextDisposalTime time.Time, err error) {
+func (r *PodDisposalScheduleReconciler) initPdsStatus(ctx context.Context, pds *pdov1.PodDisposalSchedule) (nextDisposalTime time.Time, err error) {
 	// set default value of DisposalConcurrency
 	if pds.Spec.Strategy.DisposalConcurrency == 0 {
 		pds.Spec.Strategy.DisposalConcurrency = 1
@@ -239,7 +239,7 @@ func (r *PodDisposalScheduleReconciler) initPdsStatus(ctx context.Context, pds *
 }
 
 // updateStatus updates PodDisposalSchedule resource status with Next&Last Disposal Time and Last Disposal Counts
-func (r *PodDisposalScheduleReconciler) updateStatus(ctx context.Context, pds *psov1.PodDisposalSchedule, lastDisposalCounts int) (nextDisposalTime time.Time, err error) {
+func (r *PodDisposalScheduleReconciler) updateStatus(ctx context.Context, pds *pdov1.PodDisposalSchedule, lastDisposalCounts int) (nextDisposalTime time.Time, err error) {
 	// set nextDisposalTime
 	nextDisposalTime, err = getNextSchedule(pds.Spec.Schedule, r.Now())
 	if err != nil {

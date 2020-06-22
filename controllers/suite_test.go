@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	psov1 "pod-disposal-operator/api/v1"
+	pdov1 "pod-disposal-operator/api/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -72,7 +72,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = psov1.AddToScheme(scheme.Scheme)
+	err = pdov1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -108,7 +108,7 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 	deploy := &appsv1.Deployment{}
 	podlist := &corev1.PodList{}
 	deployLabel := map[string]string{"deploy": "test-deploy"}
-	pds := &psov1.PodDisposalSchedule{ObjectMeta: metav1.ObjectMeta{
+	pds := &pdov1.PodDisposalSchedule{ObjectMeta: metav1.ObjectMeta{
 		Name:      "test-pds",
 		Namespace: ns.Name,
 	}}

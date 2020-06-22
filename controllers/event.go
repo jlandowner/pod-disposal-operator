@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	psov1 "pod-disposal-operator/api/v1"
+	pdov1 "pod-disposal-operator/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +41,7 @@ func (e EventType) String() string {
 }
 
 // invokeEvent invoke event of the poddisposalschedule
-func (r *PodDisposalScheduleReconciler) invokeEvent(ctx context.Context, pds *psov1.PodDisposalSchedule, eventType EventType, reason string, message string) error {
+func (r *PodDisposalScheduleReconciler) invokeEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, eventType EventType, reason string, message string) error {
 	now := r.realClock.Now()
 	event := &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{Name: "pds-" + getUUID(), Namespace: pds.Namespace},
@@ -66,7 +66,7 @@ func (r *PodDisposalScheduleReconciler) invokeEvent(ctx context.Context, pds *ps
 }
 
 // logEvent logs messages and invoke event
-func (r *PodDisposalScheduleReconciler) logEvent(ctx context.Context, pds *psov1.PodDisposalSchedule, reason string, message string, logKeysAndValues ...interface{}) {
+func (r *PodDisposalScheduleReconciler) logEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, reason string, message string, logKeysAndValues ...interface{}) {
 	log := r.Log.WithValues("podDisposalSchedule", pds.GetName())
 	logKeysAndValues = append(logKeysAndValues, "Reason", reason)
 	log.V(0).Info(message, logKeysAndValues...)
@@ -77,7 +77,7 @@ func (r *PodDisposalScheduleReconciler) logEvent(ctx context.Context, pds *psov1
 }
 
 // errorEvent logs error and invoke event
-func (r *PodDisposalScheduleReconciler) errorEvent(ctx context.Context, pds *psov1.PodDisposalSchedule, err error, reason string, message string, logKeysAndValues ...interface{}) {
+func (r *PodDisposalScheduleReconciler) errorEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, err error, reason string, message string, logKeysAndValues ...interface{}) {
 	log := r.Log.WithValues("podDisposalSchedule", pds.GetName())
 	log.Error(err, message, logKeysAndValues...)
 	ierr := r.invokeEvent(ctx, pds, Error, reason, fmt.Sprintf("%s: %s", message, err.Error()))
