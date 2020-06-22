@@ -98,8 +98,14 @@ spec:
                   description: MinAvailable is a number of pods must be available.
                   minimum: 0
                   type: integer
+                order:
+                  description: Order represent disposal order
+                  enum:
+                  - Old
+                  type: string
               required:
               - lifespan
+              - order
               type: object
           required:
           - schedule
@@ -342,7 +348,7 @@ spec:
         - --enable-leader-election
         command:
         - /manager
-        image: jlandowner/pod-disposal-operator:v0.1.0
+        image: jlandowner/pod-disposal-operator:v0.2.0
         name: manager
         resources:
           limits:
