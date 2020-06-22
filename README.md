@@ -105,8 +105,7 @@ Simple strategy about Disposal.
 `PodDisposalSchedule` is a Namespaced Custom Resource, so you should apply it in the same Namespace with the target Pods.
 
 # Example
-See the example.
-https://github.com/jlandowner/pod-disposal-operator/tree/master/example
+See [example docs](https://github.com/jlandowner/pod-disposal-operator/tree/master/example).
 
 # License
 Apache License Version 2.0
