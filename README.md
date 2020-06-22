@@ -94,7 +94,7 @@ Timing to disposal by cron expression.
 - `strategy`
 Simple strategy about Disposal.
   - `order`:
-  Pod's order to be deleted. Sorry but only `Old`(deleting by old order) is allowed now.
+  Pod's order to be deleted. Sorry but only `Old`(deleting in old order) is allowed now.
   - `disposalConcurrency`:
   Max number of Pod disposal at the same time. Basically the number of Pods are deleted, but it can be changed according to `minAvailable` value.
   - `lifespan`:
