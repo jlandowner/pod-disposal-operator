@@ -1,5 +1,5 @@
 NAME = pod-disposal-operator
-TAG = v0.1.0
+TAG = v0.2.0
 REPO = jlandowner
 
 # Image URL to use all building/pushing image targets
