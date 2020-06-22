@@ -40,6 +40,8 @@ const (
 
 // Strategy defines a policies of pod disposal
 type Strategy struct {
+	// Order represent disposal order
+	Order OrderType `json:"order"`
 	// DisposalConcurrency is a number of pods deleted at the same time.
 	// +kubebuilder:validation:Minimum:=1
 	DisposalConcurrency int `json:"disposalConcurrency,omitempty"`
@@ -51,6 +53,15 @@ type Strategy struct {
 	// +kubebuilder:validation:Minimum:=0
 	MinAvailable int `json:"minAvailable,omitempty"`
 }
+
+// OrderType is a type of deletion order
+// +kubebuilder:validation:Enum=Old
+type OrderType string
+
+const (
+	// OldOrder deletes Pod in old order, using CreationTimestamp.
+	OldOrder OrderType = "Old"
+)
 
 // PodDisposalScheduleStatus defines the observed state of PodDisposalSchedule
 type PodDisposalScheduleStatus struct {

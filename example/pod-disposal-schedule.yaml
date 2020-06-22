@@ -13,6 +13,8 @@ spec:
   # Cron format's disposal schedule
   schedule: "*/1 * * * *"
   strategy:
+    # Pod's order to be deleted
+    order: Old
     # Max number of pods to be deleted at the same time
     disposalConcurrency: 2
     # Pods that are living over lifespan will be deleted only

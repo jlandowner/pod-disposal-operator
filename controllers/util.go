@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 
-	psov1 "pod-disposal-operator/api/v1"
+	pdov1 "pod-disposal-operator/api/v1"
 )
 
 var (
@@ -91,25 +91,39 @@ func isLivingEnough(lifespan time.Duration, birth time.Time, now time.Time) bool
 	return birth.Add(lifespan).Before(now)
 }
 
-// filterTargetPods returns an slice of the number of pods specified by numberOfPods, ordered by age.
-func filterTargetPods(pods corev1.PodList, numberOfPods int) (tgtpodList corev1.PodList) {
+// sortPodsByOrder returns sorted pods by order in strategy.
+func sortPodsByOrder(pods *corev1.PodList, order pdov1.OrderType) *corev1.PodList {
+	switch order {
+	case pdov1.OldOrder:
+		return sortOldOrder(pods)
+	default:
+		return pods
+	}
+}
+
+// sortOldOrder returns new podlist sorted by old order.
+func sortOldOrder(pods *corev1.PodList) *corev1.PodList {
+	newPods := pods.DeepCopy()
+	sort.Slice(newPods.Items, func(i, j int) bool {
+		return newPods.Items[i].CreationTimestamp.Before(&newPods.Items[j].CreationTimestamp)
+	})
+	return newPods
+}
+
+// slicePodsByNumber returns an slice of the number of pods specified by numberOfPods.
+func slicePodsByNumber(pods *corev1.PodList, numberOfPods int) *corev1.PodList {
+	newPods := pods.DeepCopy()
 	if numberOfPods-len(pods.Items) > 0 {
 		numberOfPods = len(pods.Items)
 	}
+	newPods.Items = pods.Items[0:numberOfPods]
 
-	sort.Slice(pods.Items, func(i, j int) bool {
-		return pods.Items[i].CreationTimestamp.Before(&pods.Items[j].CreationTimestamp)
-	})
-
-	tgtpodList = pods
-	tgtpodList.Items = pods.Items[0:numberOfPods]
-
-	return tgtpodList
+	return newPods
 }
 
 // getEffectiveDisposalConcurrency returns a effective DisposalConcurrency
 // effective DisposalConcurrency is smaller value of disposalConcurrency or maxNumberOfDisposal(pod count minus minAvailable pod count)
-func getEffectiveDisposalConcurrency(pds psov1.PodDisposalSchedule, numberOfTargetPods int) int {
+func getEffectiveDisposalConcurrency(pds pdov1.PodDisposalSchedule, numberOfTargetPods int) int {
 	minAvailable := pds.Spec.Strategy.MinAvailable
 	disposalConcurrency := pds.Spec.Strategy.DisposalConcurrency
 	maxNumberOfDisposal := numberOfTargetPods - minAvailable

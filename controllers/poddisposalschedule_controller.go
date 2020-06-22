@@ -124,17 +124,18 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 	}
 
 	// livingEnoughPods is a list of pods that are living over their lifespan.
-	var livingEnoughPods corev1.PodList
+	livingEnoughPods := pods.DeepCopy()
+	livingEnoughPods.Items = make([]corev1.Pod, 0)
 	for _, pod := range pods.Items {
-		log.V(1).Info("Target pod", "pod", pod.GetName(), "creationTimestamp", pod.ObjectMeta.GetCreationTimestamp().String())
-
 		if isRunning(&pod) && isLivingEnough(lifespan, pod.GetCreationTimestamp().Time, r.Now()) {
+			log.V(1).Info("Target pod", "pod", pod.GetName(), "creationTimestamp", pod.ObjectMeta.GetCreationTimestamp().String())
 			livingEnoughPods.Items = append(livingEnoughPods.Items, pod)
 		}
 	}
 
 	// get the target pod list to be deleted.
-	targetPods := filterTargetPods(livingEnoughPods, disposalConcurrency)
+	sortedLivingEnoughPods := sortPodsByOrder(livingEnoughPods, pds.Spec.Strategy.Order)
+	targetPods := slicePodsByNumber(sortedLivingEnoughPods, disposalConcurrency)
 
 	// execute disposal in old order.
 	var disposalCounts int

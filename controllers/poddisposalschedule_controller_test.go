@@ -51,6 +51,7 @@ var _ = Describe("PoddisposalscheduleController", func() {
 					},
 					Schedule: "*/2 * * * *",
 					Strategy: psov1.Strategy{
+						Order:    "Old",
 						Lifespan: "3m",
 					},
 				},
@@ -107,6 +108,7 @@ var _ = Describe("PoddisposalscheduleController", func() {
 					},
 					Schedule: "*/1 * * * *",
 					Strategy: psov1.Strategy{
+						Order:               "Old",
 						Lifespan:            "1m",
 						MinAvailable:        2,
 						DisposalConcurrency: 2,
@@ -186,6 +188,7 @@ var _ = Describe("PoddisposalscheduleController", func() {
 					},
 					Schedule: "*/1 * * * *",
 					Strategy: psov1.Strategy{
+						Order:               "Old",
 						Lifespan:            "1s",
 						MinAvailable:        3,
 						DisposalConcurrency: 2,

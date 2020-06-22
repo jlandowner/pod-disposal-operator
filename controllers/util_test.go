@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -136,45 +137,69 @@ func TestIsLivingEnough(t *testing.T) {
 	assert.False(t, isLivingEnough(lifespan, birth, now))
 }
 
-func TestFilterTargetPod(t *testing.T) {
-	var pod1 corev1.Pod
-	var pod2 corev1.Pod
-	var pod3 corev1.Pod
-	pod1.ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC))
-	pod2.ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, 2, 0, 0, 0, time.UTC))
-	pod3.ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, 3, 0, 0, 0, time.UTC))
+func TestSortPodsByOrder(t *testing.T) {
+	pods := make([]corev1.Pod, 3)
+	for i := 0; i < 3; i++ {
+		pods[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
+		pods[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
+	}
+	timesortAscTimestampPods := &corev1.PodList{}
+	timesortAscTimestampPods.Items = pods
+	assert.Equal(t, 3, len(timesortAscTimestampPods.Items))
 
-	var randamTimestampPodsSize3 corev1.PodList
-	randamTimestampPodsSize3.Items = append(randamTimestampPodsSize3.Items, pod2)
-	randamTimestampPodsSize3.Items = append(randamTimestampPodsSize3.Items, pod1)
-	randamTimestampPodsSize3.Items = append(randamTimestampPodsSize3.Items, pod3)
+	randamTimestampPods := &corev1.PodList{}
+	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[1])
+	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[0])
+	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[2])
 
-	var timesortAscTimestampPodsSize3 corev1.PodList
-	timesortAscTimestampPodsSize3.Items = append(timesortAscTimestampPodsSize3.Items, pod1)
-	timesortAscTimestampPodsSize3.Items = append(timesortAscTimestampPodsSize3.Items, pod2)
-	timesortAscTimestampPodsSize3.Items = append(timesortAscTimestampPodsSize3.Items, pod3)
+	randamTimestampPods2 := &corev1.PodList{}
+	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[1])
+	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[2])
+	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[0])
 
-	// randamTimestampPodsSize3, numberOfPods=1
-	tgt := filterTargetPods(&randamTimestampPodsSize3, 1)
-	assert.Equal(t, 1, len(tgt.Items))
-	assert.Equal(t, pod1.ObjectMeta.CreationTimestamp.Time, tgt.Items[0].CreationTimestamp.Time)
-
-	// randamTimestampPodsSize3, numberOfPods=3
-	tgt = filterTargetPods(&randamTimestampPodsSize3, 3)
-	assert.Equal(t, 3, len(tgt.Items))
-
-	for i, pod := range tgt.Items {
-		assert.Equal(t, timesortAscTimestampPodsSize3.Items[i].CreationTimestamp.Time, pod.GetCreationTimestamp().Time)
+	// OldOrder
+	newPods := sortPodsByOrder(randamTimestampPods, pdov1.OldOrder)
+	assert.Equal(t, 3, len(newPods.Items))
+	for i := 0; i < 3; i++ {
+		assert.Equal(t, timesortAscTimestampPods.Items[i].Name, newPods.Items[i].Name)
+		assert.Equal(t, timesortAscTimestampPods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
 	}
 
-	// randamTimestampPodsSize3, numberOfPods=4
-	tgt = filterTargetPods(randamTimestampPodsSize3, 4)
-	assert.Equal(t, len(randamTimestampPodsSize3.Items), len(tgt.Items))
+	newPods = sortPodsByOrder(randamTimestampPods2, pdov1.OldOrder)
+	assert.Equal(t, 3, len(newPods.Items))
+	for i := 0; i < 3; i++ {
+		assert.Equal(t, timesortAscTimestampPods.Items[i].Name, newPods.Items[i].Name)
+		assert.Equal(t, timesortAscTimestampPods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
+	}
+}
 
-	for i, pod := range tgt.Items {
-		assert.Equal(t, timesortAscTimestampPodsSize3.Items[i].CreationTimestamp.Time, pod.GetCreationTimestamp().Time)
+func TestSlicePodsByNumber(t *testing.T) {
+	pods := make([]corev1.Pod, 3)
+	for i := 0; i < 3; i++ {
+		pods[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
+		pods[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
+	}
+	timesortAscTimestampPods := &corev1.PodList{}
+	timesortAscTimestampPods.Items = pods
+
+	podSlice := slicePodsByNumber(timesortAscTimestampPods, 0)
+	assert.Equal(t, 0, len(podSlice.Items))
+
+	podSlice = slicePodsByNumber(timesortAscTimestampPods, 1)
+	assert.Equal(t, 1, len(podSlice.Items))
+	assert.Equal(t, "pod-0", podSlice.Items[0].Name)
+
+	podSlice = slicePodsByNumber(timesortAscTimestampPods, 2)
+	assert.Equal(t, 2, len(podSlice.Items))
+	for _, pod := range podSlice.Items {
+		assert.NotEqual(t, "pod-3", pod.Name)
 	}
 
+	podSlice = slicePodsByNumber(timesortAscTimestampPods, 3)
+	assert.Equal(t, 3, len(podSlice.Items))
+
+	podSlice = slicePodsByNumber(timesortAscTimestampPods, 4)
+	assert.Equal(t, 3, len(podSlice.Items))
 }
 
 func TestGetEffectiveDisposalConcurrency(t *testing.T) {

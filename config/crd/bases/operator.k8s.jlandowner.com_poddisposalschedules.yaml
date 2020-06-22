@@ -93,8 +93,14 @@ spec:
                   description: MinAvailable is a number of pods must be available.
                   minimum: 0
                   type: integer
+                order:
+                  description: Order represent disposal order
+                  enum:
+                  - Old
+                  type: string
               required:
               - lifespan
+              - order
               type: object
           required:
           - schedule
