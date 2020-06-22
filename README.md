@@ -45,7 +45,7 @@ You can check the cluster's and your application's fault-torrelant behavior is w
 - Based on the idea that "Pods running for a longer period of time causes the unbalanced Pod allocation", the operator removes Pods in old order by default.
 This has also the aspect of a Pod rotation.
 
-- Combined with Kubernetes wide-spreading scheduling mechanisms such as [Inter-Pod Anti-Affinity](https://kubernetes.io/ja/docs/concepts/configuration/assign-pod-node/#inter-pod-affinity-anti-affinity) and [Pod Topology Spread Constraints](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/), the possibility that pods will be properly relocated in recreation after disposal may increase.
+- Combined with Kubernetes distributed scheduling mechanisms such as [Inter-Pod Anti-Affinity](https://kubernetes.io/ja/docs/concepts/configuration/assign-pod-node/#inter-pod-affinity-anti-affinity) and [Pod Topology Spread Constraints](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/), the possibility that pods will be properly relocated in recreation after disposal may increase.
 
 # QuickStart
 ```shell
