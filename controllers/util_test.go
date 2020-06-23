@@ -53,39 +53,41 @@ func TestIgnoreNotFound(t *testing.T) {
 
 func TestGetNextSchedule(t *testing.T) {
 	st := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	parseFunc := func(s string) time.Duration {
+		d, _ := time.ParseDuration(s)
+		return d
+	}
 
-	// Everyday AM 1:00
-	everyOneOClockCronPattern := "0 1 * * *"
-	expectOneHourLater, _ := time.ParseDuration("1h")
-
-	// Every 10th AM 0:00
-	everyTenthOfMonthCronPattern := "0 0 10 * *"
-	expectTenDayslater, _ := time.ParseDuration("216h")
-
-	// Every 15 minutes
-	everyFifteenMinutesCronPattern := "*/15 * * * *"
-	expectFifteenMinuteslater, _ := time.ParseDuration("15m")
+	tests := []struct {
+		cron   string
+		expect time.Duration
+	}{
+		{
+			// Everyday AM 1:00
+			cron:   "0 1 * * *",
+			expect: parseFunc("1h"),
+		},
+		{
+			// Every 10th AM 0:00
+			cron:   "0 0 10 * *",
+			expect: parseFunc("216h"),
+		},
+		{
+			// Every 15 minutes
+			cron:   "*/15 * * * *",
+			expect: parseFunc("15m"),
+		},
+	}
+	for _, test := range tests {
+		t.Log("cron", test.cron, "expect", test.expect)
+		next, err := getNextSchedule(test.cron, st)
+		assert.Nil(t, err)
+		assert.Equal(t, st.Add(test.expect), next)
+	}
 
 	// Cron Parse Err Case
 	errCronPattern := "* * * * * *"
-
-	// Everyday AM 1:00
-	next, err := getNextSchedule(everyOneOClockCronPattern, st)
-	assert.Nil(t, err)
-	assert.Equal(t, st.Add(expectOneHourLater), next)
-
-	// Every 10th AM 0:00
-	next, err = getNextSchedule(everyTenthOfMonthCronPattern, st)
-	assert.Nil(t, err)
-	assert.Equal(t, st.Add(expectTenDayslater), next)
-
-	// Every 15 minutes
-	next, err = getNextSchedule(everyFifteenMinutesCronPattern, st)
-	assert.Nil(t, err)
-	assert.Equal(t, st.Add(expectFifteenMinuteslater), next)
-
-	// Cron Parse Err Case
-	next, err = getNextSchedule(errCronPattern, st)
+	_, err := getNextSchedule(errCronPattern, st)
 	assert.NotNil(t, err)
 	assert.True(t, func() bool { match, _ := regexp.MatchString("^Unparseable schedule", err.Error()); return match }())
 }
@@ -97,26 +99,62 @@ func TestIsDefaultTime(t *testing.T) {
 	assert.True(t, isDefaultTime(result))
 	assert.True(t, isDefaultTime(initT))
 	assert.False(t, isDefaultTime(result.Add(time.Microsecond)))
+
+	tests := []struct {
+		time   time.Time
+		expect bool
+	}{
+		{
+			time:   result,
+			expect: true,
+		},
+		{
+			time:   initT,
+			expect: true,
+		},
+		{
+			time:   result.Add(time.Microsecond),
+			expect: false,
+		},
+	}
+	for _, test := range tests {
+		t.Log("time", test.time.String(), "expect", test.expect)
+		assert.Equal(t, test.expect, isDefaultTime(test.time))
+	}
 }
 
 func TestIsTimingToDisposal(t *testing.T) {
 	now := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		time   time.Time
+		expect bool
+	}{
+		{
+			// Test: Next is default time
+			time:   getDefaultTime(),
+			expect: false,
+		},
+		{
+			// Test: Next < Now
+			time:   time.Date(2019, 12, 31, 23, 59, 59, 99, time.UTC),
+			expect: true,
+		},
+		{
+			// Test: Next > Now
+			time:   time.Date(2020, 1, 1, 0, 0, 0, 1, time.UTC),
+			expect: false,
+		},
+		{
+			// Test: Next = Now
+			time:   time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			expect: false,
+		},
+	}
 
-	// False: Next is default time
-	nextDisposalTime := getDefaultTime()
-	assert.False(t, isTimingToDisposal(nextDisposalTime, now))
-
-	// True: Next < Now
-	nextDisposalTime = time.Date(2019, 12, 31, 23, 59, 59, 99, time.UTC)
-	assert.True(t, isTimingToDisposal(nextDisposalTime, now))
-
-	// False: Next > Now
-	nextDisposalTime = time.Date(2020, 1, 1, 0, 0, 0, 1, time.UTC)
-	assert.False(t, isTimingToDisposal(nextDisposalTime, now))
-
-	// False: Next = Now
-	nextDisposalTime = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	assert.False(t, isTimingToDisposal(nextDisposalTime, now))
+	for _, test := range tests {
+		t.Log("time", test.time.String(), "expect", test.expect)
+		assert.Equal(t, test.expect, isTimingToDisposal(test.time, now))
+	}
 }
 
 func TestIsLivingEnough(t *testing.T) {
@@ -124,17 +162,31 @@ func TestIsLivingEnough(t *testing.T) {
 	assert.Nil(t, err)
 	birth := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	// True: Now - Birth > lifespan
-	now := time.Date(2020, 1, 1, 2, 0, 0, 0, time.UTC)
-	assert.True(t, isLivingEnough(lifespan, birth, now))
+	tests := []struct {
+		now    time.Time
+		expect bool
+	}{
+		{
+			// Test: Now - Birth > lifespan
+			now:    time.Date(2020, 1, 1, 2, 0, 0, 0, time.UTC),
+			expect: true,
+		},
+		{
+			// Test: Now - Birth < lifespan
+			now:    time.Date(2020, 1, 1, 0, 59, 59, 0, time.UTC),
+			expect: false,
+		},
+		{
+			// Test: Now - Birth = lifespan
+			now:    time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC),
+			expect: false,
+		},
+	}
 
-	// False: Now - Birth < lifespan
-	now = time.Date(2020, 1, 1, 0, 59, 59, 0, time.UTC)
-	assert.False(t, isLivingEnough(lifespan, birth, now))
-
-	// False: Now - Birth = lifespan
-	now = time.Date(2020, 1, 1, 1, 0, 0, 0, time.UTC)
-	assert.False(t, isLivingEnough(lifespan, birth, now))
+	for _, test := range tests {
+		t.Log("now", test.now, "expect", test.expect)
+		assert.Equal(t, test.expect, isLivingEnough(lifespan, birth, test.now))
+	}
 }
 
 func TestIsRunning(t *testing.T) {
@@ -144,7 +196,7 @@ func TestIsRunning(t *testing.T) {
 	}{
 		{
 			// Test name, num of containers, restarts, container ready status
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test1"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -155,11 +207,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test container error overwrites pod phase
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test2"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -170,11 +222,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test the same as the above but with Terminated state and the first container overwrites the rest
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test3"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -185,11 +237,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test ready is not enough for reporting running
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test4"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -200,11 +252,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test ready is not enough for reporting running
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test5"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -216,11 +268,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test pod has 2 containers, one is running and the other is completed, w/o ready condition
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test6"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -232,11 +284,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			true,
+			expect: true,
 		},
 		{
 			// Test pod has 2 containers and init container, one is running and the other is completed, with ready condition
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test7"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
 				Status: corev1.PodStatus{
@@ -254,11 +306,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			true,
+			expect: true,
 		},
 		{
 			// Test init container is running
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test8"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
 				Status: corev1.PodStatus{
@@ -275,11 +327,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			false,
+			expect: false,
 		},
 		{
 			// Test phase is Completed but container is running
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test9"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
 				Status: corev1.PodStatus{
@@ -293,11 +345,11 @@ func TestIsRunning(t *testing.T) {
 					},
 				},
 			},
-			true,
+			expect: true,
 		},
 		{
 			// Test phase is Completed but container is running
-			corev1.Pod{
+			pod: corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "test10"},
 				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
 				Status: corev1.PodStatus{
@@ -305,102 +357,120 @@ func TestIsRunning(t *testing.T) {
 					Reason: "",
 				},
 			},
-			true,
+			expect: true,
 		},
 	}
 	for _, test := range tests {
+		t.Log("pod", test.pod.Name, "expect", test.expect)
 		assert.Equal(t, test.expect, isRunning(&test.pod))
 	}
 }
 
 func TestSortPodsByOrder(t *testing.T) {
-	pods := make([]corev1.Pod, 3)
+	pods := &corev1.PodList{Items: make([]corev1.Pod, 3)}
 	for i := 0; i < 3; i++ {
-		pods[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
-		pods[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
+		pods.Items[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
+		pods.Items[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
 	}
-	timesortAscTimestampPods := &corev1.PodList{}
-	timesortAscTimestampPods.Items = pods
-	assert.Equal(t, 3, len(timesortAscTimestampPods.Items))
+	assert.Equal(t, 3, len(pods.Items))
 
-	randamTimestampPods := &corev1.PodList{}
-	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[1])
-	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[0])
-	randamTimestampPods.Items = append(randamTimestampPods.Items, pods[2])
-
-	randamTimestampPods2 := &corev1.PodList{}
-	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[1])
-	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[2])
-	randamTimestampPods2.Items = append(randamTimestampPods2.Items, pods[0])
-
-	// OldOrder
-	newPods := sortPodsByOrder(randamTimestampPods, pdov1.OldOrder)
-	assert.Equal(t, 3, len(newPods.Items))
-	for i := 0; i < 3; i++ {
-		assert.Equal(t, timesortAscTimestampPods.Items[i].Name, newPods.Items[i].Name)
-		assert.Equal(t, timesortAscTimestampPods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
+	// Old order test
+	oldOrderTests := []struct {
+		podlist *corev1.PodList
+		order   pdov1.OrderType
+	}{
+		{
+			podlist: &corev1.PodList{
+				Items: []corev1.Pod{pods.Items[1], pods.Items[0], pods.Items[2]},
+			},
+			order: pdov1.OldOrder,
+		},
+		{
+			podlist: &corev1.PodList{
+				Items: []corev1.Pod{pods.Items[1], pods.Items[2], pods.Items[0]},
+			},
+			order: pdov1.OldOrder,
+		},
 	}
-
-	newPods = sortPodsByOrder(randamTimestampPods2, pdov1.OldOrder)
-	assert.Equal(t, 3, len(newPods.Items))
-	for i := 0; i < 3; i++ {
-		assert.Equal(t, timesortAscTimestampPods.Items[i].Name, newPods.Items[i].Name)
-		assert.Equal(t, timesortAscTimestampPods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
+	for _, test := range oldOrderTests {
+		newPods := sortPodsByOrder(test.podlist, test.order)
+		for i := 0; i < 3; i++ {
+			assert.Equal(t, pods.Items[i].Name, newPods.Items[i].Name)
+			assert.Equal(t, pods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
+		}
 	}
 }
 
 func TestSlicePodsByNumber(t *testing.T) {
-	pods := make([]corev1.Pod, 3)
-	for i := 0; i < 3; i++ {
-		pods[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
-		pods[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
-	}
-	timesortAscTimestampPods := &corev1.PodList{}
-	timesortAscTimestampPods.Items = pods
-
-	podSlice := slicePodsByNumber(timesortAscTimestampPods, 0)
-	assert.Equal(t, 0, len(podSlice.Items))
-
-	podSlice = slicePodsByNumber(timesortAscTimestampPods, 1)
-	assert.Equal(t, 1, len(podSlice.Items))
-	assert.Equal(t, "pod-0", podSlice.Items[0].Name)
-
-	podSlice = slicePodsByNumber(timesortAscTimestampPods, 2)
-	assert.Equal(t, 2, len(podSlice.Items))
-	for _, pod := range podSlice.Items {
-		assert.NotEqual(t, "pod-3", pod.Name)
+	pods := &corev1.PodList{Items: make([]corev1.Pod, 3)}
+	for i := range pods.Items {
+		pods.Items[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
+		pods.Items[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
 	}
 
-	podSlice = slicePodsByNumber(timesortAscTimestampPods, 3)
-	assert.Equal(t, 3, len(podSlice.Items))
+	testNumberOfPods := []int{0, 1, 2, 3, 4, 5}
+	for _, testNum := range testNumberOfPods {
+		podSlice := slicePodsByNumber(pods, testNum)
+		t.Log("testNum", testNum, len(podSlice.Items))
 
-	podSlice = slicePodsByNumber(timesortAscTimestampPods, 4)
-	assert.Equal(t, 3, len(podSlice.Items))
+		if testNum <= len(pods.Items) {
+			assert.Equal(t, testNum, len(podSlice.Items))
+		} else {
+			assert.Equal(t, len(pods.Items), len(podSlice.Items))
+		}
+
+		for i := 0; i < len(podSlice.Items); i++ {
+			assert.Equal(t, fmt.Sprintf("pod-%d", i), podSlice.Items[i].Name)
+		}
+	}
 }
 
 func TestGetEffectiveDisposalConcurrency(t *testing.T) {
-	var result int
-	pds := pdov1.PodDisposalSchedule{}
-	pds.Spec.Strategy.DisposalConcurrency = 2
-	numberOfPods := 3
+	tests := []struct {
+		minAvailable        int
+		disposalConcurrency int
+		numberOfPods        int
+		expect              int
+	}{
+		{
+			minAvailable:        0,
+			disposalConcurrency: 2,
+			numberOfPods:        3,
+			expect:              2,
+		},
+		{
+			minAvailable:        1,
+			disposalConcurrency: 2,
+			numberOfPods:        3,
+			expect:              2,
+		},
+		{
+			minAvailable:        2,
+			disposalConcurrency: 2,
+			numberOfPods:        3,
+			expect:              1,
+		},
+		{
+			minAvailable:        3,
+			disposalConcurrency: 2,
+			numberOfPods:        3,
+			expect:              0,
+		},
 
-	pds.Spec.Strategy.MinAvailable = 0
-	result = getEffectiveDisposalConcurrency(pds, numberOfPods)
-	assert.Equal(t, 2, result)
+		{
+			minAvailable:        4,
+			disposalConcurrency: 2,
+			numberOfPods:        3,
+			expect:              0,
+		},
+	}
 
-	pds.Spec.Strategy.MinAvailable = 1
-	result = getEffectiveDisposalConcurrency(pds, numberOfPods)
-	assert.Equal(t, 2, result)
+	for _, test := range tests {
+		pds := pdov1.PodDisposalSchedule{}
+		pds.Spec.Strategy.MinAvailable = test.minAvailable
+		pds.Spec.Strategy.DisposalConcurrency = test.disposalConcurrency
 
-	pds.Spec.Strategy.MinAvailable = 2
-	result = getEffectiveDisposalConcurrency(pds, numberOfPods)
-	assert.Equal(t, 1, result)
-
-	pds.Spec.Strategy.MinAvailable = 3
-	result = getEffectiveDisposalConcurrency(pds, numberOfPods)
-	assert.Equal(t, 0, result)
-
-	pds.Spec.Strategy.MinAvailable = 4
-	result = getEffectiveDisposalConcurrency(pds, numberOfPods)
-	assert.Equal(t, 0, result)
+		t.Log("minAvailable", test.minAvailable, "disposalConcurrency", test.disposalConcurrency, "numberOfPods", test.numberOfPods, "expect", test.expect)
+		assert.Equal(t, test.expect, getEffectiveDisposalConcurrency(pds, test.numberOfPods))
+	}
 }
