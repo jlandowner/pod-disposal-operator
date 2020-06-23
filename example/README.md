@@ -12,6 +12,10 @@ Then, create a PodDisposalSchedule in the same namespace with the Deployment.
 kubectl apply -f https://raw.githubusercontent.com/jlandowner/pod-disposal-operator/master/example/pod-disposal-schedule.yaml
 ```
 
+```shell
+while true; do kubectl get po -n default -l deploy=sample-nginx; sleep 10; done
+```
+
 1 minute later, you can see a Pod is disposed.
 
 `DisposalConcurrerny` is 2 in the configuration file but even a single Pod is deleted.
