@@ -67,8 +67,8 @@ func (r *PodDisposalScheduleReconciler) invokeEvent(ctx context.Context, pds *pd
 
 // logEvent logs messages and invoke event
 func (r *PodDisposalScheduleReconciler) logEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, reason string, message string, logKeysAndValues ...interface{}) {
-	log := r.Log.WithValues("podDisposalSchedule", pds.GetName())
-	logKeysAndValues = append(logKeysAndValues, "Reason", reason)
+	log := r.Log.WithValues("pod-disposal-schedule", pds.GetName())
+	logKeysAndValues = append(logKeysAndValues, "reason", reason)
 	log.V(0).Info(message, logKeysAndValues...)
 	err := r.invokeEvent(ctx, pds, Normal, reason, message)
 	if err != nil {
@@ -78,7 +78,7 @@ func (r *PodDisposalScheduleReconciler) logEvent(ctx context.Context, pds *pdov1
 
 // errorEvent logs error and invoke event
 func (r *PodDisposalScheduleReconciler) errorEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, err error, reason string, message string, logKeysAndValues ...interface{}) {
-	log := r.Log.WithValues("podDisposalSchedule", pds.GetName())
+	log := r.Log.WithValues("pod-disposal-schedule", pds.GetName())
 	log.Error(err, message, logKeysAndValues...)
 	ierr := r.invokeEvent(ctx, pds, Error, reason, fmt.Sprintf("%s: %s", message, err.Error()))
 	if ierr != nil {

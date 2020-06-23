@@ -61,7 +61,7 @@ func (r *PodDisposalScheduleReconciler) SetupWithManager(mgr ctrl.Manager) error
 // Reconcile is main reconciliation logic.
 func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("podDisposalSchedule", req.NamespacedName)
+	log := r.Log.WithValues("pod-disposal-schedule", req.NamespacedName)
 	log.V(0).Info("Start reconcile")
 
 	var pds pdov1.PodDisposalSchedule
@@ -88,7 +88,10 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 
 	// start disposal when it has reached already to NextDisposlTime.
 	if isTimingToDisposal(pds.Status.NextDisposalTime.Time, r.Now()) {
-		r.logEvent(ctx, &pds, "Starting", "Pod disposal is starting", "next", nextDisposalTime.String())
+		r.logEvent(ctx, &pds, "Starting", "Pod disposal is starting",
+			"next", nextDisposalTime.String(),
+			"diposal-concurrency", pds.Spec.Strategy.DisposalConcurrency,
+			"min-available", pds.Spec.Strategy.MinAvailable)
 
 	} else {
 		log.V(1).Info("Skip disposal", "next", nextDisposalTime.String())
@@ -106,7 +109,9 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 	// calculate effective disposalConcurrency
 	disposalConcurrency := getEffectiveDisposalConcurrency(pds, len(pods.Items))
 	if disposalConcurrency == 0 {
-		r.logEvent(ctx, &pds, "Skip", "MinAvailable is not satisfied", "effectiveDisposalConcurrency", disposalConcurrency, "minAvailable", pds.Spec.Strategy.MinAvailable)
+		r.logEvent(ctx, &pds, "Skip", "MinAvailable is not satisfied",
+			"effective-disposal-concurrency", disposalConcurrency,
+			"min-available", pds.Spec.Strategy.MinAvailable)
 
 		// update the pds status field.
 		next, err := r.updateStatus(ctx, &pds, 0)
@@ -127,17 +132,26 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 	livingEnoughPods := pods.DeepCopy()
 	livingEnoughPods.Items = make([]corev1.Pod, 0)
 	for _, pod := range pods.Items {
-		if isRunning(&pod) && isLivingEnough(lifespan, pod.GetCreationTimestamp().Time, r.Now()) {
-			log.V(1).Info("Target pod", "pod", pod.GetName(), "creationTimestamp", pod.ObjectMeta.GetCreationTimestamp().String())
+		isRunning := isRunning(&pod)
+		isLivingEnough := isLivingEnough(lifespan, pod.CreationTimestamp.Time, r.Now())
+		log.V(1).Info("- Target pod", "pod", pod.GetName(),
+			"creation-timestamp", pod.ObjectMeta.GetCreationTimestamp().String(),
+			"is-running", isRunning, "is-living-enough", isLivingEnough)
+
+		if isRunning && isLivingEnough {
 			livingEnoughPods.Items = append(livingEnoughPods.Items, pod)
 		}
 	}
 
-	// get the target pod list to be deleted.
+	// sort & filter the target pod.
 	sortedLivingEnoughPods := sortPodsByOrder(livingEnoughPods, pds.Spec.Strategy.Order)
 	targetPods := slicePodsByNumber(sortedLivingEnoughPods, disposalConcurrency)
 
-	// execute disposal in old order.
+	log.V(1).Info("Disposal Details",
+		"effective-disposal-concurrency", disposalConcurrency,
+		"living-enough-pods-count", len(targetPods.Items), "lifespan", pds.Spec.Strategy.Lifespan)
+
+	// execute disposal.
 	var disposalCounts int
 	for _, pod := range targetPods.Items {
 		err := r.Delete(ctx, &pod)
@@ -168,7 +182,7 @@ func (r *PodDisposalScheduleReconciler) Reconcile(req ctrl.Request) (ctrl.Result
 		return ctrl.Result{}, err
 	}
 
-	r.logEvent(ctx, &pds, "Finished", "Pod disposal is successfully finished", "next", next.String())
+	r.logEvent(ctx, &pds, "Finished", "Pod disposal is successfully finished", "disposal-counts", disposalCounts, "next", next.String())
 
 	return ctrl.Result{RequeueAfter: next.Sub(r.Now())}, nil
 }
