@@ -49,7 +49,7 @@ var _ = Describe("PoddisposalscheduleController", func() {
 						Type: "Deployment",
 						Name: "test-deploy",
 					},
-					Schedule: "*/2 * * * *",
+					Schedule: "*/3 * * * *",
 					Strategy: psov1.Strategy{
 						Order:    "Old",
 						Lifespan: "3m",

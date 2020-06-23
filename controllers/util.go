@@ -81,9 +81,52 @@ func isTimingToDisposal(nextDisposalTime time.Time, now time.Time) bool {
 }
 
 // isRunning returns true if pod status is running
+// Based on https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L705
 func isRunning(pod *corev1.Pod) bool {
-	//TODO Check "Running" status in kubectl get pods .
-	return true
+	reason := string(pod.Status.Phase)
+	if pod.Status.Reason != "" {
+		reason = pod.Status.Reason
+	}
+
+	// return false if all init containers have not finished.
+	for i := range pod.Status.InitContainerStatuses {
+		initContainer := pod.Status.InitContainerStatuses[i]
+		if initContainer.State.Terminated == nil || initContainer.State.Terminated.ExitCode != 0 {
+			return false
+		}
+	}
+
+	hasRunning := false
+	for i := len(pod.Status.ContainerStatuses) - 1; i >= 0; i-- {
+		container := pod.Status.ContainerStatuses[i]
+		if container.Ready && container.State.Running != nil {
+			hasRunning = true
+			break
+		}
+	}
+
+	if reason == "Completed" && hasRunning {
+		hasPodReadyCondition := false
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+				hasPodReadyCondition = true
+			}
+		}
+		// change pod status back to "Running" if there is at least one container still reporting as "Running" status
+		if hasPodReadyCondition {
+			reason = "Running"
+		} else {
+			reason = "NotReady"
+		}
+	}
+
+	if pod.DeletionTimestamp != nil && pod.Status.Reason == "NodeLost" {
+		reason = "Unknown"
+	} else if pod.DeletionTimestamp != nil {
+		reason = "Terminating"
+	}
+
+	return reason == "Running"
 }
 
 // isLivingEnough returns true if the time pod is alive (Now - pod.creationTimeStamp) is longer than lifespan.

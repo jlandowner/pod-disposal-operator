@@ -137,6 +137,182 @@ func TestIsLivingEnough(t *testing.T) {
 	assert.False(t, isLivingEnough(lifespan, birth, now))
 }
 
+func TestIsRunning(t *testing.T) {
+	tests := []struct {
+		pod    corev1.Pod
+		expect bool
+	}{
+		{
+			// Test name, num of containers, restarts, container ready status
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test1"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+						{RestartCount: 3},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test container error overwrites pod phase
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test2"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+						{State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerWaitingReason"}}, RestartCount: 3},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test the same as the above but with Terminated state and the first container overwrites the rest
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test3"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerWaitingReason"}}, RestartCount: 3},
+						{State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "ContainerTerminatedReason"}}, RestartCount: 3},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test ready is not enough for reporting running
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test4"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+						{Ready: true, RestartCount: 3},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test ready is not enough for reporting running
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test5"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Reason: "podReason",
+					Phase:  "podPhase",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+						{Ready: true, RestartCount: 3},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test pod has 2 containers, one is running and the other is completed, w/o ready condition
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test6"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase:  "Running",
+					Reason: "",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Completed", ExitCode: 0}}},
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+					},
+				},
+			},
+			true,
+		},
+		{
+			// Test pod has 2 containers and init container, one is running and the other is completed, with ready condition
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test7"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 2)},
+				Status: corev1.PodStatus{
+					Phase:  "Running",
+					Reason: "",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Completed", ExitCode: 0}}},
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+					},
+					Conditions: []corev1.PodCondition{
+						{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastProbeTime: metav1.Time{Time: time.Now()}},
+					},
+					InitContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{Reason: "Completed", ExitCode: 0}}},
+					},
+				},
+			},
+			true,
+		},
+		{
+			// Test init container is running
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test8"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
+				Status: corev1.PodStatus{
+					Phase:  "Running",
+					Reason: "",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+					},
+					Conditions: []corev1.PodCondition{
+						{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastProbeTime: metav1.Time{Time: time.Now()}},
+					},
+					InitContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+					},
+				},
+			},
+			false,
+		},
+		{
+			// Test phase is Completed but container is running
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test9"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
+				Status: corev1.PodStatus{
+					Phase:  "Completed",
+					Reason: "",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+					},
+					Conditions: []corev1.PodCondition{
+						{Type: corev1.PodReady, Status: corev1.ConditionTrue, LastProbeTime: metav1.Time{Time: time.Now()}},
+					},
+				},
+			},
+			true,
+		},
+		{
+			// Test phase is Completed but container is running
+			corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "test10"},
+				Spec:       corev1.PodSpec{Containers: make([]corev1.Container, 1)},
+				Status: corev1.PodStatus{
+					Phase:  "Running",
+					Reason: "",
+				},
+			},
+			true,
+		},
+	}
+	for _, test := range tests {
+		assert.Equal(t, test.expect, isRunning(&test.pod))
+	}
+}
+
 func TestSortPodsByOrder(t *testing.T) {
 	pods := make([]corev1.Pod, 3)
 	for i := 0; i < 3; i++ {

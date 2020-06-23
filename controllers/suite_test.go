@@ -156,9 +156,10 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 				Spec:       podspec,
 			}
 			podlist.Items = append(podlist.Items, pod)
-			time.Sleep(time.Second)
 			err = k8sClient.Create(ctx, &pod)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test pod")
+			err = updatePodStatusRunning(ctx, &pod)
+			Expect(err).NotTo(HaveOccurred(), "failed to update pod running")
 		}
 
 		// PodDisposalScheduleReconciler manager start
@@ -220,4 +221,10 @@ func waitJustNextMinute() {
 	now := time.Now()
 	wait := now.Truncate(time.Minute).Add(time.Minute + time.Second)
 	time.Sleep(wait.Sub(now))
+}
+
+func updatePodStatusRunning(ctx context.Context, pod *corev1.Pod) error {
+	pod.Status.Phase = "Running"
+	pod.Status.Reason = ""
+	return k8sClient.Status().Update(ctx, pod)
 }
