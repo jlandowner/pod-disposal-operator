@@ -348,7 +348,7 @@ spec:
         - --enable-leader-election
         command:
         - /manager
-        image: jlandowner/pod-disposal-operator:v0.2.0
+        image: jlandowner/pod-disposal-operator:v0.3.0
         name: manager
         resources:
           limits:
