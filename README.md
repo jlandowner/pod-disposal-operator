@@ -1,5 +1,9 @@
 # Pod Disposal Operator
 
+[![GoReportCard](https://goreportcard.com/badge/github.com/jlandowner/pod-disposal-operator)](https://goreportcard.com/report/github.com/jlandowner/pod-disposal-operator)
+
+[![dockeri.co](https://dockeri.co/image/jlandowner/pod-disposal-operator)](https://hub.docker.com/r/jlandowner/pod-disposal-operator)
+
 Pod Disposal Operator performs a simple operation that dispose some pods in Deployment regularly specified by a cron expression.
 
 ## Target Usecase
