@@ -19,6 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+
+	"github.com/google/uuid"
+
 	pdov1 "pod-disposal-operator/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -43,8 +46,9 @@ func (e EventType) String() string {
 // invokeEvent invoke event of the poddisposalschedule
 func (r *PodDisposalScheduleReconciler) invokeEvent(ctx context.Context, pds *pdov1.PodDisposalSchedule, eventType EventType, reason string, message string) error {
 	now := r.realClock.Now()
+	uuid := uuid.New()
 	event := &corev1.Event{
-		ObjectMeta: metav1.ObjectMeta{Name: "pds-" + getUUID(), Namespace: pds.Namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "pds-" + uuid.String(), Namespace: pds.Namespace},
 		Source: corev1.EventSource{
 			Component: "pod-disposal-operator",
 		},
