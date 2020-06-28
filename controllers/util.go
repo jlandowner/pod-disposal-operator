@@ -18,10 +18,8 @@ package controllers
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -134,25 +132,6 @@ func isLivingEnough(lifespan time.Duration, birth time.Time, now time.Time) bool
 	return birth.Add(lifespan).Before(now)
 }
 
-// sortPodsByOrder returns sorted pods by order in strategy.
-func sortPodsByOrder(pods *corev1.PodList, order pdov1.OrderType) *corev1.PodList {
-	switch order {
-	case pdov1.OldOrder:
-		return sortOldOrder(pods)
-	default:
-		return pods
-	}
-}
-
-// sortOldOrder returns new podlist sorted by old order.
-func sortOldOrder(pods *corev1.PodList) *corev1.PodList {
-	newPods := pods.DeepCopy()
-	sort.Slice(newPods.Items, func(i, j int) bool {
-		return newPods.Items[i].CreationTimestamp.Before(&newPods.Items[j].CreationTimestamp)
-	})
-	return newPods
-}
-
 // slicePodsByNumber returns an slice of the number of pods specified by numberOfPods.
 func slicePodsByNumber(pods *corev1.PodList, numberOfPods int) *corev1.PodList {
 	newPods := pods.DeepCopy()
@@ -179,10 +158,4 @@ func getEffectiveDisposalConcurrency(pds pdov1.PodDisposalSchedule, numberOfTarg
 		return maxNumberOfDisposal
 	}
 	return disposalConcurrency
-}
-
-// getUUID returns string uuid
-func getUUID() string {
-	uuid := uuid.New()
-	return uuid.String()
 }

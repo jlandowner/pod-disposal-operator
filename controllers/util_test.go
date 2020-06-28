@@ -366,41 +366,6 @@ func TestIsRunning(t *testing.T) {
 	}
 }
 
-func TestSortPodsByOrder(t *testing.T) {
-	pods := &corev1.PodList{Items: make([]corev1.Pod, 3)}
-	for i := 0; i < 3; i++ {
-		pods.Items[i].ObjectMeta.Name = fmt.Sprintf("pod-%d", i)
-		pods.Items[i].ObjectMeta.CreationTimestamp = metav1.NewTime(time.Date(2020, 1, 1, i, 0, 0, 0, time.UTC))
-	}
-	assert.Equal(t, 3, len(pods.Items))
-
-	// Old order test
-	oldOrderTests := []struct {
-		podlist *corev1.PodList
-		order   pdov1.OrderType
-	}{
-		{
-			podlist: &corev1.PodList{
-				Items: []corev1.Pod{pods.Items[1], pods.Items[0], pods.Items[2]},
-			},
-			order: pdov1.OldOrder,
-		},
-		{
-			podlist: &corev1.PodList{
-				Items: []corev1.Pod{pods.Items[1], pods.Items[2], pods.Items[0]},
-			},
-			order: pdov1.OldOrder,
-		},
-	}
-	for _, test := range oldOrderTests {
-		newPods := sortPodsByOrder(test.podlist, test.order)
-		for i := 0; i < 3; i++ {
-			assert.Equal(t, pods.Items[i].Name, newPods.Items[i].Name)
-			assert.Equal(t, pods.Items[i].CreationTimestamp.Time, newPods.Items[i].CreationTimestamp.Time)
-		}
-	}
-}
-
 func TestSlicePodsByNumber(t *testing.T) {
 	pods := &corev1.PodList{Items: make([]corev1.Pod, 3)}
 	for i := range pods.Items {
