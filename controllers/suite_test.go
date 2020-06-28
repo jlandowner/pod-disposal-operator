@@ -160,6 +160,7 @@ func SetupTest(ctx context.Context) *corev1.Namespace {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test pod")
 			err = updatePodStatusRunning(ctx, &pod)
 			Expect(err).NotTo(HaveOccurred(), "failed to update pod running")
+			time.Sleep(time.Second)
 		}
 
 		// PodDisposalScheduleReconciler manager start
